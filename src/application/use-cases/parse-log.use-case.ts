@@ -96,7 +96,37 @@ export class ParseLogUseCase {
                 weapon: ev.cause.type === 'WEAPON' ? ev.cause.weapon : null,
                 reason: ev.cause.type === 'WORLD' ? ev.cause.reason : null,
             });
-            await this.killRepo.save(row);
+            const domainEvents = events.sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
+            const computed = this.stats.computeMatchStats(match, domainEvents, {});
+            const awardRows: Array<Partial<AwardOrmEntity>> = [];
+
+            if (computed.winner) {
+                const winnerName = computed.winner.player;
+                const winnerStats = computed.players[winnerName];
+                if (winnerStats?.awards?.invincible) {
+                    const winner = byName.get(winnerName) ?? (await this.getOrCreatePlayerByName(winnerName));
+                    awardRows.push({
+                        matchId: match.id,
+                        playerId: winner.id,
+                        type: 'INVINCIBLE',
+                    });
+                }
+            }
+
+            for (const p of Object.values(computed.players)) {
+                if (p.awards?.fiveInOneMinute) {
+                    const pl = byName.get(p.player) ?? (await this.getOrCreatePlayerByName(p.player));
+                    awardRows.push({
+                        matchId: match.id,
+                        playerId: pl.id,
+                        type: 'FIVE_IN_ONE_MINUTE',
+                    });
+                }
+            }
+
+            if (awardRows.length > 0) {
+                await this.awardRepo.upsert(awardRows as AwardOrmEntity[], ['matchId', 'playerId', 'type']);
+            }
         }
     }
 }
