@@ -92,4 +92,15 @@ describe('StatsCalculatorService', () => {
         expect(result.players['Bob'].deaths).toBe(1);
         expect(result.players['Carol'].deaths).toBe(1);
     });
+
+    it('award invicto para vencedor sem morrer', () => {
+        const match = new Match('m5', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
+        const events: KillEvent[] = [
+            new KillEvent(d('01/01/2020 10:01:00'), match.id, 'Zed', 'X', { type: 'WEAPON', weapon: 'AR' }),
+            new KillEvent(d('01/01/2020 10:02:00'), match.id, 'Zed', 'Y', { type: 'WEAPON', weapon: 'AR' }),
+        ];
+        const result = service.computeMatchStats(match, events, {});
+        expect(result.winner?.player).toBe('Zed');
+        expect(result.players['Zed'].awards.invincible).toBe(true);
+    });
 });
