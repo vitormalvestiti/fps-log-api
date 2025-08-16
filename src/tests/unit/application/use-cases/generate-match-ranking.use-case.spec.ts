@@ -6,80 +6,73 @@ import { GenerateMatchRankingUseCase } from '../../../../application/use-cases/g
 import { Match } from '../../../../domain/entities/match.entity';
 import { KillEvent } from '../../../../domain/entities/kill-event.entity';
 
-
 const d = (s: string) => {
-    const [date, time] = s.split(' ');
-    const [dd, mm, yyyy] = date.split('/').map(Number);
-    const [HH, MM, SS] = time.split(':').map(Number);
-    return new Date(yyyy, mm - 1, dd, HH, MM, SS);
+  const [date, time] = s.split(' ');
+  const [dd, mm, yyyy] = date.split('/').map(Number);
+  const [HH, MM, SS] = time.split(':').map(Number);
+  return new Date(yyyy, mm - 1, dd, HH, MM, SS);
 };
 
 describe('GenerateMatchRankingUseCase', () => {
-    let uc: GenerateMatchRankingUseCase;
-    let stats: StatsCalculatorService;
-    let matchRepo: jest.Mocked<IMatchRepository>;
-    let killRepo: jest.Mocked<IKillRepository>;
-    let teamRepo: jest.Mocked<ITeamRepository>;
+  let uc: GenerateMatchRankingUseCase;
+  let stats: StatsCalculatorService;
+  let matchRepo: jest.Mocked<IMatchRepository>;
+  let killRepo: jest.Mocked<IKillRepository>;
+  let teamRepo: jest.Mocked<ITeamRepository>;
 
-    beforeEach(() => {
-        stats = new StatsCalculatorService();
-        matchRepo = { findById: jest.fn() };
-        killRepo = { listByMatchId: jest.fn() };
-        teamRepo = { getTeamsByMatchId: jest.fn() };
-        uc = new GenerateMatchRankingUseCase(matchRepo, killRepo, teamRepo, stats);
-    });
+  beforeEach(() => {
+    stats = new StatsCalculatorService();
+    matchRepo = { findById: jest.fn() };
+    killRepo = { listByMatchId: jest.fn() };
+    teamRepo = { getTeamsByMatchId: jest.fn() };
+    uc = new GenerateMatchRankingUseCase(matchRepo, killRepo, teamRepo, stats);
+  });
 
-    it('lança erro se a partida não existir', async () => {
-        matchRepo.findById.mockResolvedValue(null);
-        await expect(uc.execute({ matchId: 'x' })).rejects.toThrow(/match not found/i);
-    });
+  it('gera ranking ordenado e vencedor com arma preferida', async () => {
+    const match = new Match('m1', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
+    matchRepo.findById.mockResolvedValue(match);
 
-    it('gera ranking ordenado e vencedor com arma preferida', async () => {
-        const match = new Match('m1', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
-        matchRepo.findById.mockResolvedValue(match);
+    const events: KillEvent[] = [
+      new KillEvent(d('01/01/2020 10:01:00'), 'm1', 'Roman', 'Nick', { type: 'WEAPON', weapon: 'M16' }),
+      new KillEvent(d('01/01/2020 10:02:00'), 'm1', 'Roman', 'Nick', { type: 'WEAPON', weapon: 'AK47' }),
+      new KillEvent(d('01/01/2020 10:03:00'), 'm1', 'Roman', 'Nick', { type: 'WEAPON', weapon: 'M16' }),
+      new KillEvent(d('01/01/2020 10:04:00'), 'm1', 'Nick', 'Roman', { type: 'WEAPON', weapon: 'AK47' }),
+    ];
+    killRepo.listByMatchId.mockResolvedValue(events);
+    teamRepo.getTeamsByMatchId.mockResolvedValue({});
 
-        const events: KillEvent[] = [
-            new KillEvent(d('01/01/2020 10:01:00'), 'm1', 'Roman', 'Nick', { type: 'WEAPON', weapon: 'M16' }),
-            new KillEvent(d('01/01/2020 10:02:00'), 'm1', 'Roman', 'Nick', { type: 'WEAPON', weapon: 'AK47' }),
-            new KillEvent(d('01/01/2020 10:03:00'), 'm1', 'Roman', 'Nick', { type: 'WEAPON', weapon: 'M16' }),
-            new KillEvent(d('01/01/2020 10:04:00'), 'm1', 'Nick', 'Roman', { type: 'WEAPON', weapon: 'AK47' }),
-        ];
-        killRepo.listByMatchId.mockResolvedValue(events);
-        teamRepo.getTeamsByMatchId.mockResolvedValue({});
+    const result = await uc.execute({ matchId: 'm1' });
 
-        const result = await uc.execute({ matchId: 'm1' });
+    expect(result.matchId).toBe('m1');
+    expect(result.winner?.player).toBe('Roman');
+    expect(result.winner?.favoriteWeapon).toBe('M16');
 
-        expect(result.matchId).toBe('m1');
-        expect(result.winner?.player).toBe('Roman');
-        expect(result.winner?.favoriteWeapon).toBe('M16');
+    expect(result.ranking[0].player).toBe('Roman');
+    expect(result.ranking[0].frags).toBe(3);
+    expect(result.ranking[0].deaths).toBe(1);
+  });
 
-        expect(result.ranking[0].player).toBe('Roman');
-        expect(result.ranking[0].frags).toBe(3);
-        expect(result.ranking[0].deaths).toBe(1);
-    });
+  it('lança erro se a partida não existir', async () => {
+    matchRepo.findById.mockResolvedValue(null);
+    await expect(uc.execute({ matchId: 'x' })).rejects.toThrow(/match not found/i);
+  });
 
-    it('amplia com friendly fire quando times são iguais', async () => {
-        const d = (s: string) => {
-            const [date, time] = s.split(' ');
-            const [dd, mm, yyyy] = date.split('/').map(Number);
-            const [HH, MM, SS] = time.split(':').map(Number);
-            return new Date(yyyy, mm - 1, dd, HH, MM, SS);
-        };
-        const match = new Match('m2', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
-        matchRepo.findById.mockResolvedValue(match);
+  it('amplia com friendly fire quando times são iguais', async () => {
+    const match = new Match('m2', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
+    matchRepo.findById.mockResolvedValue(match);
 
-        const ev = (t: string, killer: string, victim: string) =>
-            new KillEvent(d(t), 'm2', killer, victim, { type: 'WEAPON', weapon: 'AK' });
+    const ev = (t: string, killer: string, victim: string) =>
+      new KillEvent(d(t), 'm2', killer, victim, { type: 'WEAPON', weapon: 'AK' });
 
-        const events: KillEvent[] = [
-            ev('01/01/2020 10:01:00', 'Alice', 'Bob'),
-            ev('01/01/2020 10:02:00', 'Alice', 'Carol'),
-        ];
-        killRepo.listByMatchId.mockResolvedValue(events);
-        teamRepo.getTeamsByMatchId.mockResolvedValue({ Alice: 'T1', Bob: 'T2', Carol: 'T1' });
+    const events: KillEvent[] = [
+      ev('01/01/2020 10:01:00', 'Alice', 'Bob'),
+      ev('01/01/2020 10:02:00', 'Alice', 'Carol'),
+    ];
+    killRepo.listByMatchId.mockResolvedValue(events);
+    teamRepo.getTeamsByMatchId.mockResolvedValue({ Alice: 'T1', Bob: 'T2', Carol: 'T1' });
 
-        const result = await uc.execute({ matchId: 'm2' });
-        const alice = result.ranking.find(r => r.player === 'Alice')!;
-        expect(alice.frags).toBe(0);
-    });
+    const result = await uc.execute({ matchId: 'm2' });
+    const alice = result.ranking.find((r: { player: string; }) => r.player === 'Alice')!;
+    expect(alice.frags).toBe(0);
+  });
 });
