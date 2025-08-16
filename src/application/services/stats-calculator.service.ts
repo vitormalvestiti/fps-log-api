@@ -54,13 +54,19 @@ export class StatsCalculatorService {
 
       if (ev.killer !== '<WORLD>') {
         const killerStats = ensure(ev.killer);
-        killerStats.frags += 1;
-        killerStats.currentStreak += 1;
-        if (killerStats.currentStreak > killerStats.maxStreak) killerStats.maxStreak = killerStats.currentStreak;
-        if (ev.cause.type === 'WEAPON') {
-          killerStats.weapons[ev.cause.weapon] = (killerStats.weapons[ev.cause.weapon] ?? 0) + 1;
+        const isFF = _teams[ev.killer] && _teams[ev.victim] && _teams[ev.killer] === _teams[ev.victim];
+
+        if (isFF) {
+          killerStats.frags -= 1;
+        } else {
+          killerStats.frags += 1;
+          killerStats.currentStreak += 1;
+          if (killerStats.currentStreak > killerStats.maxStreak) killerStats.maxStreak = killerStats.currentStreak;
+          if (ev.cause.type === 'WEAPON') {
+            killerStats.weapons[ev.cause.weapon] = (killerStats.weapons[ev.cause.weapon] ?? 0) + 1;
+          }
+          killerStats.killTimes.push(ev.occurredAt);
         }
-        killerStats.killTimes.push(ev.occurredAt);
       }
     }
 
