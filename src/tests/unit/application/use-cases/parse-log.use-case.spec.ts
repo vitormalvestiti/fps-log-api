@@ -196,5 +196,31 @@ describe('ParseLogUseCase - partidas', () => {
         expect(conflict).toEqual(['matchId', 'playerId', 'type']);
     });
 
+        it('processa multiplas partidas no mesmo log e retorna todos os matchIds', async () => {
+        parser.parse.mockReturnValue({
+            matches: [
+                { id: 'm1', startedAt: new Date(), endedAt: new Date(), end() { } },
+                { id: 'm2', startedAt: new Date(), endedAt: new Date(), end() { } },
+            ],
+            events: [
+                { matchId: 'm1', occurredAt: new Date('2019-01-01T10:00:00Z'), killer: 'A', victim: 'B', cause: { type: 'WEAPON', weapon: 'AK' } },
+                { matchId: 'm2', occurredAt: new Date('2019-01-01T11:00:00Z'), killer: '<WORLD>', victim: 'C', cause: { type: 'WORLD', reason: 'DROWN' } },
+            ],
+        } as any);
+
+        matchRepo.findOne.mockResolvedValueOnce(null);
+        matchRepo.findOne.mockResolvedValueOnce(null);
+
+        playerRepo.findOne
+            .mockResolvedValueOnce({ id: 'p-a', name: 'A' } as any)
+            .mockResolvedValueOnce({ id: 'p-b', name: 'B' } as any)
+            .mockResolvedValueOnce({ id: 'p-c', name: 'C' } as any);
+
+        killRepo.findOne.mockResolvedValue(null);
+
+        const out = await uc.execute({ log: 'any' });
+        expect(out).toEqual({ matches: [{ matchId: 'm1' }, { matchId: 'm2' }] });
+        expect(killRepo.save).toHaveBeenCalledTimes(2);
+    });
 
 });
