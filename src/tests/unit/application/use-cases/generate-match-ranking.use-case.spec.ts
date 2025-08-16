@@ -57,4 +57,29 @@ describe('GenerateMatchRankingUseCase', () => {
         expect(result.ranking[0].frags).toBe(3);
         expect(result.ranking[0].deaths).toBe(1);
     });
+
+    it('amplia com friendly fire quando times são iguais', async () => {
+        const d = (s: string) => {
+            const [date, time] = s.split(' ');
+            const [dd, mm, yyyy] = date.split('/').map(Number);
+            const [HH, MM, SS] = time.split(':').map(Number);
+            return new Date(yyyy, mm - 1, dd, HH, MM, SS);
+        };
+        const match = new Match('m2', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
+        matchRepo.findById.mockResolvedValue(match);
+
+        const ev = (t: string, killer: string, victim: string) =>
+            new KillEvent(d(t), 'm2', killer, victim, { type: 'WEAPON', weapon: 'AK' });
+
+        const events: KillEvent[] = [
+            ev('01/01/2020 10:01:00', 'Alice', 'Bob'),
+            ev('01/01/2020 10:02:00', 'Alice', 'Carol'),
+        ];
+        killRepo.listByMatchId.mockResolvedValue(events);
+        teamRepo.getTeamsByMatchId.mockResolvedValue({ Alice: 'T1', Bob: 'T2', Carol: 'T1' });
+
+        const result = await uc.execute({ matchId: 'm2' });
+        const alice = result.ranking.find(r => r.player === 'Alice')!;
+        expect(alice.frags).toBe(0);
+    });
 });
