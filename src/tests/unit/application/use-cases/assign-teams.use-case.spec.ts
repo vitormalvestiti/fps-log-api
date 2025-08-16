@@ -2,6 +2,7 @@ import { Repository, ObjectLiteral } from 'typeorm';
 import { PlayerMatchTeamOrmEntity } from '../../../../infrastructure/database/orm/player-match-team.orm-entity';
 import { PlayerOrmEntity } from '../../../../infrastructure/database/orm/player.orm-entity';
 import { TeamOrmEntity } from '../../../../infrastructure/database/orm/team.orm-entity';
+import { AssignTeamsUseCase } from '../../../../application/use-cases/assign-teams.use-case';
 
 type UpsertValues<T extends ObjectLiteral> = Parameters<Repository<T>['upsert']>[0];
 type UpsertConflict<T extends ObjectLiteral> = Parameters<Repository<T>['upsert']>[1];
