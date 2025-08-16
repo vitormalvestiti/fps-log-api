@@ -158,4 +158,43 @@ describe('ParseLogUseCase - partidas', () => {
         expect(killRepo.save).not.toHaveBeenCalled();
     });
 
+    it('premia winner com INVINCIBLE e qualquer jogador com FIVE_IN_ONE_MINUTE se passar nas condicoes', async () => {
+        parser.parse.mockReturnValue({
+            matches: [{ id: 'm1', startedAt: new Date(), endedAt: new Date(), end() { } }],
+            events: [],
+        } as any);
+
+        matchRepo.findOne.mockResolvedValueOnce(null);
+
+        playerRepo.findOne
+            .mockResolvedValueOnce({ id: 'p-roman', name: 'Roman' } as any)
+            .mockResolvedValueOnce({ id: 'p-marcus', name: 'Marcus' } as any);
+
+        (stats.computeMatchStats as jest.Mock).mockReturnValueOnce({
+            winner: { player: 'Roman' },
+            players: {
+                Roman: { player: 'Roman', awards: { invincible: true, fiveInOneMinute: false } },
+                Marcus: { player: 'Marcus', awards: { invincible: false, fiveInOneMinute: true } },
+            },
+        });
+
+        const out = await uc.execute({ log: 'any' });
+        expect(out).toEqual({ matches: [{ matchId: 'm1' }] });
+
+        const calls = (awardRepo.upsert as unknown as jest.Mock).mock.calls;
+        expect(calls.length).toBe(1);
+
+        const rows = (calls[0][0] as any[]);
+        const conflict = calls[0][1];
+
+        expect(rows).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ matchId: 'm1', playerId: 'p-roman', type: 'INVINCIBLE' }),
+                expect.objectContaining({ matchId: 'm1', playerId: 'p-marcus', type: 'FIVE_IN_ONE_MINUTE' }),
+            ]),
+        );
+        expect(conflict).toEqual(['matchId', 'playerId', 'type']);
+    });
+
+
 });
