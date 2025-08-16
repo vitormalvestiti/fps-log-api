@@ -1,3 +1,4 @@
+import { LogParserService } from "../../../../application/services/log-parser.service";
 
 describe('LogParserService - básico', () => {
     let svc: LogParserService;
