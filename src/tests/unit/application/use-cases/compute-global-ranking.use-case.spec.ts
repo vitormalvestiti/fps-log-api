@@ -4,6 +4,7 @@ import type { IKillRepository } from '../../../../application/interfaces/i-kill-
 import type { ITeamRepository } from '../../../../application/interfaces/i-team-repository';
 import { Match } from '../../../../domain/entities/match.entity';
 import { KillEvent } from '../../../../domain/entities/kill-event.entity';
+import { ComputeGlobalRankingUseCase } from '../../../../application/use-cases/compute-global-ranking.use-case';
 
 const d = (s: string) => {
     const [date, time] = s.split(' ');
