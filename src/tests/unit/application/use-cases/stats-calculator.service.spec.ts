@@ -37,4 +37,22 @@ describe('StatsCalculatorService', () => {
         expect(nick.frags).toBe(0);
         expect(nick.deaths).toBe(2);
     });
+
+    it('calcula streak maximo por jogador e reseta ao morrer (se o player morrer)', () => {
+        const match = new Match('m1', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
+        const ev = (t: string, killer: string, victim: string) =>
+            new KillEvent(d(t), match.id, killer, victim, { type: 'WEAPON', weapon: 'AK' });
+        const events: KillEvent[] = [
+            ev('01/01/2020 10:01:00', 'A', 'B'),
+            ev('01/01/2020 10:02:00', 'A', 'C'),
+            ev('01/01/2020 10:03:00', 'B', 'A'),
+            ev('01/01/2020 10:04:00', 'A', 'B'),
+            ev('01/01/2020 10:05:00', 'A', 'C'),
+            ev('01/01/2020 10:06:00', 'A', 'C'),
+        ];
+        const result = service.computeMatchStats(match, events, {});
+        expect(result.players['A'].maxStreak).toBe(3);
+        expect(result.players['B'].maxStreak).toBe(1);
+        expect(result.players['C'].maxStreak).toBe(0);
+    });
 });
