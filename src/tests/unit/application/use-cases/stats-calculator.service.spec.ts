@@ -69,7 +69,7 @@ describe('StatsCalculatorService', () => {
         expect(result.winner?.favoriteWeapon).toBe('M16');
     });
 
-     it('aplica janela de kills em 1 minuto para detecção de 5 kills em 1 minuto', () => {
+    it('aplica janela de kills em 1 minuto para detecção de 5 kills em 1 minuto', () => {
         const match = new Match('m3', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
         const base = '01/01/2020 10:01:';
         const pad = (n: number) => n.toString().padStart(2, '0');
@@ -78,5 +78,18 @@ describe('StatsCalculatorService', () => {
 
         const result = service.computeMatchStats(match, events, {});
         expect(result.players['Ace'].awards.fiveInOneMinute).toBe(true);
+    });
+
+    it('friendly fire: se killer e victim do mesmo time, subtrai 1 frag do killer', () => {
+        const match = new Match('m4', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
+        const events: KillEvent[] = [
+            new KillEvent(d('01/01/2020 10:01:00'), match.id, 'Alice', 'Bob', { type: 'WEAPON', weapon: 'AK' }),
+            new KillEvent(d('01/01/2020 10:02:00'), match.id, 'Alice', 'Carol', { type: 'WEAPON', weapon: 'AK' }),
+        ];
+        const teams = { Alice: 'T1', Bob: 'T2', Carol: 'T1' };
+        const result = service.computeMatchStats(match, events, teams);
+        expect(result.players['Alice'].frags).toBe(0);
+        expect(result.players['Bob'].deaths).toBe(1);
+        expect(result.players['Carol'].deaths).toBe(1);
     });
 });
