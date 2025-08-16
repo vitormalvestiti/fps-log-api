@@ -15,26 +15,32 @@ export class LogParserService {
     parse(rawLog: string): ParseResult {
         const matches: Match[] = [];
         const events: KillEvent[] = [];
+        let currentMatch: Match | null = null;
 
-        const normalized = (rawLog ?? '')
+        const normalized = rawLog
             .replace(/\r\n|\r/g, '\n')
-            .replace(/(?<!^)(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})/g, '\n$1');
+            .replace(
+                /(?<!^)(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})/g,
+                '\n$1',
+            );
 
         const lines = normalized
             .split('\n')
             .map(l => l.trim())
-            .filter(Boolean);
+            .filter(l => l.length > 0);
 
-        if (lines.length === 0) return { matches, events };
-
-        let currentMatch: Match | null = null;
+        if (lines.length === 0) {
+            return { matches, events };
+        }
 
         for (const line of lines) {
             let m = line.match(this.reStart);
             if (m) {
                 const when = parseBrDatetime(m[1]);
                 const id = m[2];
-                if (currentMatch) throw new Error(`New match started before ending previous match ${currentMatch.id}`);
+                if (currentMatch) {
+                    throw new Error(`New match started before ending previous match ${currentMatch.id}`);
+                }
                 currentMatch = new Match(id, when);
                 matches.push(currentMatch);
                 continue;
@@ -44,7 +50,9 @@ export class LogParserService {
             if (m) {
                 const when = parseBrDatetime(m[1]);
                 const id = m[2];
-                if (!currentMatch || currentMatch.id !== id) throw new Error(`End for unknown or mismatched match ${id}`);
+                if (!currentMatch || currentMatch.id !== id) {
+                    throw new Error(`End for unknown or mismatched match ${id}`);
+                }
                 currentMatch.end(when);
                 currentMatch = null;
                 continue;
@@ -74,7 +82,9 @@ export class LogParserService {
             throw new Error(`Linha inválida: "${line}"`);
         }
 
-        if (currentMatch) throw new Error(`Match ${currentMatch.id} não foi encerrada no log`);
+        if (currentMatch) {
+            throw new Error(`Match ${currentMatch.id} não foi encerrada no log`);
+        }
 
         return { matches, events };
     }
