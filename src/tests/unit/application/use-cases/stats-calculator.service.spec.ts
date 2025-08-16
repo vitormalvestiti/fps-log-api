@@ -68,4 +68,15 @@ describe('StatsCalculatorService', () => {
         expect(result.winner?.player).toBe('Roman');
         expect(result.winner?.favoriteWeapon).toBe('M16');
     });
+
+     it('aplica janela de kills em 1 minuto para detecção de 5 kills em 1 minuto', () => {
+        const match = new Match('m3', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
+        const base = '01/01/2020 10:01:';
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const events: KillEvent[] = [0, 10, 20, 30, 40]
+            .map(s => new KillEvent(d(`${base}${pad(s)}`), match.id, 'Ace', 'Bob', { type: 'WEAPON', weapon: 'SMG' }));
+
+        const result = service.computeMatchStats(match, events, {});
+        expect(result.players['Ace'].awards.fiveInOneMinute).toBe(true);
+    });
 });
