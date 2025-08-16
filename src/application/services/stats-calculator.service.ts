@@ -93,6 +93,10 @@ export class StatsCalculatorService {
         favoriteWeapon = entries[0][0];
       }
     }
+    
+    if (winnerP && byPlayer[winnerP.player].deaths === 0) {
+      byPlayer[winnerP.player].awards.invincible = true;
+    }
 
     const players: Record<string, PlayerMatchStats> = {};
     for (const p of Object.values(byPlayer)) {
