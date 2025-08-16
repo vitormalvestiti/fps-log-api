@@ -9,18 +9,39 @@ type Input = { matchId: string };
 
 @Injectable()
 export class GenerateMatchRankingUseCase {
-  constructor(
-    @Inject('IMatchRepository') private readonly matchRepo: IMatchRepository,
-    @Inject('IKillRepository')  private readonly killRepo: IKillRepository,
-    @Inject('ITeamRepository')  private readonly teamRepo: ITeamRepository,
-    private readonly stats: StatsCalculatorService,
-  ) {}
+    constructor(
+        @Inject('IMatchRepository') private readonly matchRepo: IMatchRepository,
+        @Inject('IKillRepository') private readonly killRepo: IKillRepository,
+        @Inject('ITeamRepository') private readonly teamRepo: ITeamRepository,
+        private readonly stats: StatsCalculatorService,
+    ) { }
 
-  async execute({ matchId }: Input): Promise<MatchRankingDto> {
-    const match = await this.matchRepo.findById(matchId);
-    if (!match) throw new Error('Match not found');
+    async execute({ matchId }: Input): Promise<MatchRankingDto> {
+        const match = await this.matchRepo.findById(matchId);
+        if (!match) throw new Error('Match not found');
+        const events = await this.killRepo.listByMatchId(matchId);
+        const teams = await this.teamRepo.getTeamsByMatchId(matchId);
 
-    // implementação mínima por enquanto
-    return { matchId, winner: null, ranking: [] as MatchRankingItemDto[] };
-  }
+        const computed = this.stats.computeMatchStats(match, events, teams);
+
+        const ranking: MatchRankingItemDto[] = Object.values(computed.players)
+            .map(p => ({
+                player: p.player,
+                frags: p.frags,
+                deaths: p.deaths,
+                maxStreak: p.maxStreak,
+                awards: { ...p.awards },
+            }))
+            .sort((a, b) => {
+                if (b.frags !== a.frags) return b.frags - a.frags;
+                if (a.deaths !== b.deaths) return a.deaths - b.deaths;
+                return b.maxStreak - a.maxStreak;
+            });
+
+        return {
+            matchId,
+            winner: computed.winner,
+            ranking,
+        };
+    }
 }
