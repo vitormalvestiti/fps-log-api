@@ -112,10 +112,11 @@ describe('AssignTeamsUseCase (FKs reais + transação)', () => {
         });
 
         const calls = (pmtRepo.upsert as unknown as jest.Mock).mock.calls;
-        const valuesArg = calls[0][0] as any[];
-        const conflictArg = calls[0][1] as string[];
+        const valuesArg = calls[0][0] as UpsertValues<PlayerMatchTeamOrmEntity>;
+        const conflictArg = calls[0][1] as UpsertConflict<PlayerMatchTeamOrmEntity>;
+        const rows = Array.isArray(valuesArg) ? valuesArg : [valuesArg];
 
-        expect(Array.isArray(valuesArg) ? valuesArg.length : 1).toBe(2);
+        expect(rows).toHaveLength(2);
         expect(conflictArg).toEqual(['matchId', 'playerId']);
         expect(playerRepo.save).not.toHaveBeenCalled();
         expect(teamRepo.save).not.toHaveBeenCalled();
