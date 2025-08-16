@@ -2,6 +2,7 @@ import { StatsCalculatorService } from '../../../../application/services/stats-c
 import type { IMatchRepository } from '../../../../application/interfaces/i-match-repository';
 import type { IKillRepository } from '../../../../application/interfaces/i-kill-repository';
 import type { ITeamRepository } from '../../../../application/interfaces/i-team-repository';
+import { GenerateMatchRankingUseCase } from '../../../../application/use-cases/generate-match-ranking.use-case';
 
 describe('GenerateMatchRankingUseCase', () => {
   let uc: GenerateMatchRankingUseCase;
