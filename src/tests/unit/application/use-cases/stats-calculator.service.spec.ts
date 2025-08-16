@@ -55,4 +55,17 @@ describe('StatsCalculatorService', () => {
         expect(result.players['B'].maxStreak).toBe(1);
         expect(result.players['C'].maxStreak).toBe(0);
     });
+
+    it('identifica arma preferida do vencedor da partida', () => {
+        const match = new Match('m2', d('01/01/2020 10:00:00'), d('01/01/2020 10:10:00'));
+        const events: KillEvent[] = [
+            new KillEvent(d('01/01/2020 10:01:00'), match.id, 'Roman', 'Nick', { type: 'WEAPON', weapon: 'M16' }),
+            new KillEvent(d('01/01/2020 10:02:00'), match.id, 'Roman', 'Nick', { type: 'WEAPON', weapon: 'AK47' }),
+            new KillEvent(d('01/01/2020 10:03:00'), match.id, 'Roman', 'Nick', { type: 'WEAPON', weapon: 'M16' }),
+            new KillEvent(d('01/01/2020 10:04:00'), match.id, 'Nick', 'Roman', { type: 'WEAPON', weapon: 'AK47' }),
+        ];
+        const result = service.computeMatchStats(match, events, {});
+        expect(result.winner?.player).toBe('Roman');
+        expect(result.winner?.favoriteWeapon).toBe('M16');
+    });
 });
