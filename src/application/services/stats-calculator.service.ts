@@ -27,7 +27,7 @@ export type MatchStatsResult = {
 @Injectable()
 export class StatsCalculatorService {
   computeMatchStats(match: Match, events: KillEvent[], _teams: TeamMap): MatchStatsResult {
-    const byPlayer: Record<string, PlayerMatchStats> = {};
+    const byPlayer: Record<string, (PlayerMatchStats & { currentStreak: number })> = {};
     const ensure = (name: string) => {
       if (!byPlayer[name]) {
         byPlayer[name] = {
@@ -35,6 +35,7 @@ export class StatsCalculatorService {
           frags: 0,
           deaths: 0,
           maxStreak: 0,
+          currentStreak: 0,
           weapons: {},
           awards: { invincible: false, fiveInOneMinute: false },
         };
@@ -47,20 +48,25 @@ export class StatsCalculatorService {
     for (const ev of ordered) {
       const victim = ensure(ev.victim);
       victim.deaths += 1;
+      victim.currentStreak = 0;
 
       if (ev.killer !== '<WORLD>') {
         const killer = ensure(ev.killer);
         killer.frags += 1;
+        killer.currentStreak += 1;
+        if (killer.currentStreak > killer.maxStreak) killer.maxStreak = killer.currentStreak;
         if (ev.cause.type === 'WEAPON') {
           killer.weapons[ev.cause.weapon] = (killer.weapons[ev.cause.weapon] ?? 0) + 1;
         }
       }
     }
 
-    return {
-      matchId: match.id,
-      players: byPlayer,
-      winner: null,
-    };
+    const players: Record<string, PlayerMatchStats> = {};
+    for (const p of Object.values(byPlayer)) {
+      const { currentStreak, ...rest } = p;
+      players[p.player] = rest;
+    }
+
+    return { matchId: match.id, players, winner: null };
   }
 }
