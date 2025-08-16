@@ -69,4 +69,65 @@ describe('ParseLogUseCase - partidas', () => {
             expect.objectContaining({ id: 'm1', endedAt: new Date('2019-04-23T18:39:22Z') }),
         );
     });
+
+    it('persiste kills resolvendo players e seta killerName=null quando killer é <WORLD>', async () => {
+        parser.parse.mockReturnValue({
+            matches: [{ id: 'm1', startedAt: new Date('2019-04-23T18:34:22Z'), endedAt: new Date('2019-04-23T18:39:22Z'), end() { } }],
+            events: [
+                {
+                    matchId: 'm1',
+                    occurredAt: new Date('2019-04-23T18:36:04Z'),
+                    killer: 'Roman',
+                    victim: 'Nick',
+                    cause: { type: 'WEAPON', weapon: 'M16' },
+                },
+                {
+                    matchId: 'm1',
+                    occurredAt: new Date('2019-04-23T18:36:33Z'),
+                    killer: '<WORLD>',
+                    victim: 'Nick',
+                    cause: { type: 'WORLD', reason: 'DROWN' },
+                },
+            ],
+        } as any);
+
+        matchRepo.findOne.mockResolvedValueOnce(null);
+
+        playerRepo.findOne
+            .mockResolvedValueOnce({ id: 'p-roman', name: 'Roman' } as any)
+            .mockResolvedValueOnce({ id: 'p-nick', name: 'Nick' } as any)
+            .mockResolvedValueOnce({ id: 'p-nick', name: 'Nick' } as any);
+
+        killRepo.findOne.mockResolvedValue(null);
+
+        await uc.execute({ log: 'any' });
+
+        expect(killRepo.save).toHaveBeenCalledTimes(2);
+
+        expect(killRepo.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                matchId: 'm1',
+                killerId: 'p-roman',
+                victimId: 'p-nick',
+                killerName: 'Roman',
+                victimName: 'Nick',
+                occurredAt: new Date('2019-04-23T18:36:04Z'),
+                causeType: 'WEAPON',
+                weapon: 'M16',
+                reason: null,
+            }),
+        );
+
+        expect(killRepo.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                matchId: 'm1',
+                killerId: null,
+                killerName: null,
+                victimName: 'Nick',
+                causeType: 'WORLD',
+                weapon: null,
+                reason: 'DROWN',
+            }),
+        );
+    });
 });
