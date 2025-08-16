@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Match } from '../../domain/entities/match.entity';
 import { KillEvent } from '../../domain/entities/kill-event.entity';
+import { hasNItemsInWindow } from '../../common/utils/window.util';
 
 export type TeamMap = Record<string, string>;
 
@@ -27,7 +28,7 @@ export type MatchStatsResult = {
 @Injectable()
 export class StatsCalculatorService {
   computeMatchStats(match: Match, events: KillEvent[], _teams: TeamMap): MatchStatsResult {
-    const byPlayer: Record<string, (PlayerMatchStats & { currentStreak: number })> = {};
+    const byPlayer: Record<string, (PlayerMatchStats & { currentStreak: number; killTimes: Date[] })> = {};
     const ensure = (name: string) => {
       if (!byPlayer[name]) {
         byPlayer[name] = {
@@ -38,6 +39,7 @@ export class StatsCalculatorService {
           currentStreak: 0,
           weapons: {},
           awards: { invincible: false, fiveInOneMinute: false },
+          killTimes: [],
         };
       }
       return byPlayer[name];
@@ -46,20 +48,28 @@ export class StatsCalculatorService {
     const ordered = [...events].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
 
     for (const ev of ordered) {
-      const victim = ensure(ev.victim);
-      victim.deaths += 1;
-      victim.currentStreak = 0;
+      const victimStats = ensure(ev.victim);
+      victimStats.deaths += 1;
+      victimStats.currentStreak = 0;
 
       if (ev.killer !== '<WORLD>') {
-        const killer = ensure(ev.killer);
-        killer.frags += 1;
-        killer.currentStreak += 1;
-        if (killer.currentStreak > killer.maxStreak) killer.maxStreak = killer.currentStreak;
+        const killerStats = ensure(ev.killer);
+        killerStats.frags += 1;
+        killerStats.currentStreak += 1;
+        if (killerStats.currentStreak > killerStats.maxStreak) killerStats.maxStreak = killerStats.currentStreak;
         if (ev.cause.type === 'WEAPON') {
-          killer.weapons[ev.cause.weapon] = (killer.weapons[ev.cause.weapon] ?? 0) + 1;
+          killerStats.weapons[ev.cause.weapon] = (killerStats.weapons[ev.cause.weapon] ?? 0) + 1;
         }
+        killerStats.killTimes.push(ev.occurredAt);
       }
     }
+
+    const WINDOW_MS = 60 * 1000;
+    Object.values(byPlayer).forEach(p => {
+      if (hasNItemsInWindow(p.killTimes, WINDOW_MS, 5)) {
+        p.awards.fiveInOneMinute = true;
+      }
+    });
 
     const playersArr = Object.values(byPlayer).map(p => ({ ...p }));
     playersArr.sort((a, b) => {
