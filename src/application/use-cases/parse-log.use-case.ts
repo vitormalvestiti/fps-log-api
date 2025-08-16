@@ -48,6 +48,9 @@ export class ParseLogUseCase {
                 endedAt: match.endedAt ?? null,
             });
             await this.matchRepo.save(m);
+        } else if (match.endedAt && !m.endedAt) {
+            m.endedAt = match.endedAt;
+            await this.matchRepo.save(m);
         }
     }
 }
