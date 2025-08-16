@@ -130,4 +130,32 @@ describe('ParseLogUseCase - partidas', () => {
             }),
         );
     });
+
+    it('nao duplica kill quando já existe', async () => {
+        parser.parse.mockReturnValue({
+            matches: [{ id: 'm1', startedAt: new Date(), endedAt: new Date(), end() { } }],
+            events: [
+                {
+                    matchId: 'm1',
+                    occurredAt: new Date('2019-04-23T18:36:04Z'),
+                    killer: 'Roman',
+                    victim: 'Nick',
+                    cause: { type: 'WEAPON', weapon: 'M16' },
+                },
+            ],
+        } as any);
+
+        matchRepo.findOne.mockResolvedValueOnce(null);
+
+        playerRepo.findOne
+            .mockResolvedValueOnce({ id: 'p-roman', name: 'Roman' } as any)
+            .mockResolvedValueOnce({ id: 'p-nick', name: 'Nick' } as any);
+
+        killRepo.findOne.mockResolvedValueOnce({ id: 'k1' } as any);
+
+        await uc.execute({ log: 'any' });
+
+        expect(killRepo.save).not.toHaveBeenCalled();
+    });
+
 });
