@@ -61,12 +61,33 @@ export class StatsCalculatorService {
       }
     }
 
+    const playersArr = Object.values(byPlayer).map(p => ({ ...p }));
+    playersArr.sort((a, b) => {
+      if (b.frags !== a.frags) return b.frags - a.frags;
+      if (a.deaths !== b.deaths) return a.deaths - b.deaths;
+      return b.maxStreak - a.maxStreak;
+    });
+    const winnerP = playersArr[0] ?? null;
+
+    let favoriteWeapon = '';
+    if (winnerP) {
+      const entries = Object.entries(winnerP.weapons);
+      if (entries.length > 0) {
+        entries.sort((a, b) => b[1] - a[1]);
+        favoriteWeapon = entries[0][0];
+      }
+    }
+
     const players: Record<string, PlayerMatchStats> = {};
     for (const p of Object.values(byPlayer)) {
       const { currentStreak, ...rest } = p;
       players[p.player] = rest;
     }
 
-    return { matchId: match.id, players, winner: null };
+    return {
+      matchId: match.id,
+      players,
+      winner: winnerP ? { player: winnerP.player, favoriteWeapon } : null,
+    };
   }
 }
