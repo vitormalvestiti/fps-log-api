@@ -15,13 +15,13 @@ export class ComputeGlobalRankingUseCase {
         @Inject('IKillRepository') private readonly killRepo: IKillRepository,
         @Inject('ITeamRepository') private readonly teamRepo: ITeamRepository,
         private readonly stats: StatsCalculatorService,
+
         @Inject('IMatchListing') private readonly matchListing: IMatchListing,
     ) { }
 
     async execute({ limit = 20, offset = 0 }: Input): Promise<GlobalRankingDto> {
         const matches = await this.matchListing.listAll();
-
-        const acc: Record<string, GlobalRankingItemDto> = {};
+        const acc: Record<string, GlobalRankingItemDto & { winsSet: number; bestStreakAcc: number }> = {};
 
         for (const m of matches) {
             const events = await this.killRepo.listByMatchId(m.id);
@@ -37,11 +37,15 @@ export class ComputeGlobalRankingUseCase {
                         kd: 0,
                         wins: 0,
                         bestStreak: 0,
+                        winsSet: 0,
+                        bestStreakAcc: 0,
                     };
                 }
                 acc[p.player].totalFrags += p.frags;
                 acc[p.player].totalDeaths += p.deaths;
-                acc[p.player].bestStreak = Math.max(acc[p.player].bestStreak, p.maxStreak);
+                if (p.maxStreak > acc[p.player].bestStreak) {
+                    acc[p.player].bestStreak = p.maxStreak;
+                }
             }
 
             if (res.winner) {
