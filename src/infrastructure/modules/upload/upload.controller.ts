@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, Post, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ParseLogUseCase } from '../../../application/use-cases/parse-log.use-case';
+import { UploadLogDto } from './dto/upload-file.dto';
 
 
 @Controller('upload')
@@ -8,7 +9,7 @@ export class UploadController {
   constructor(private readonly parseLog: ParseLogUseCase) {}
 
   @Post()
-async uploadJsonOrText(@Req() req: Request, @Body() body: any) {
+async uploadJsonOrText(@Req() req: Request, @Body() body: UploadLogDto) {
     console.log('REQ METHOD:', req.method);
     console.log('REQ URL:', req.url);
     console.log('HEADERS:', req.headers);
