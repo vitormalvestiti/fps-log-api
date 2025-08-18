@@ -6,6 +6,7 @@ import { MatchOrmEntity } from '../../../../../src/infrastructure/database/orm/m
 import { PlayerOrmEntity } from '../../../../../src/infrastructure/database/orm/player.orm-entity';
 import { KillOrmEntity } from '../../../../../src/infrastructure/database/orm/kill.orm-entity';
 import { AwardOrmEntity } from '../../../../../src/infrastructure/database/orm/award.orm-entity';
+import { BadRequestException } from '@nestjs/common';
 
 type UpsertValues<T extends ObjectLiteral> = Parameters<Repository<T>['upsert']>[0];
 type UpsertConflict<T extends ObjectLiteral> = Parameters<Repository<T>['upsert']>[1];
@@ -233,5 +234,32 @@ describe('ParseLogUseCase - suíte completa', () => {
     const out = await uc.execute({ log: 'any' });
     expect(out).toEqual({ matches: [{ matchId: 'm1' }, { matchId: 'm2' }] });
     expect(killRepo.save).toHaveBeenCalledTimes(2);
+  });
+
+  it('lança erro e nao persiste nada quando tem mais de 20 jogadores unicos na partida', async () => {
+    const events: any[] = [];
+    for (let i = 1; i <= 21; i++) {
+      events.push({
+        matchId: 'mX',
+        occurredAt: new Date(2019, 0, 1, 10, i, 0),
+        killer: `K${i}`,
+        victim: `V${i}`,
+        cause: { type: 'WEAPON', weapon: 'M16' },
+      });
+    }
+
+    parser.parse.mockReturnValue({
+      matches: [{ id: 'mX', startedAt: new Date(), endedAt: new Date(), end() {} }],
+      events,
+    } as any);
+
+    await expect(uc.execute({ log: 'qualquer' }))
+      .rejects
+      .toBeInstanceOf(BadRequestException);
+
+    expect(matchRepo.save).not.toHaveBeenCalled();
+    expect(playerRepo.save).not.toHaveBeenCalled();
+    expect(killRepo.save).not.toHaveBeenCalled();
+    expect(awardRepo.upsert).not.toHaveBeenCalled();
   });
 });
