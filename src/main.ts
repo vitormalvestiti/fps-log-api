@@ -12,7 +12,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-  app.use(express.text({ type: '*/*', limit: '10mb' })); 
+  app.use(express.text({ type: 'text/plain', limit: '10mb' })); 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());

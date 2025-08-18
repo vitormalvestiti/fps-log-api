@@ -9,13 +9,16 @@ import { MatchOrmEntity } from '../../database/orm/match.orm-entity';
 import { PlayerOrmEntity } from '../../database/orm/player.orm-entity';
 import { KillOrmEntity } from '../../database/orm/kill.orm-entity';
 import { AwardOrmEntity } from '../../database/orm/award.orm-entity';
+import { memoryStorage } from 'multer';
 
 @Module({
   imports: [
-    MulterModule.register({}),
+    MulterModule.register({
+      storage: memoryStorage(),
+    }),
     TypeOrmModule.forFeature([MatchOrmEntity, PlayerOrmEntity, KillOrmEntity, AwardOrmEntity]),
   ],
   controllers: [UploadController],
   providers: [ParseLogUseCase, LogParserService, StatsCalculatorService],
 })
-export class UploadModule {}
+export class UploadModule { }
