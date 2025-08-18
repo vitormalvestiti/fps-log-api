@@ -6,6 +6,8 @@ import { typeormConfig } from './infrastructure/database/typeorm.config';
 import { UploadModule } from './infrastructure/modules/upload/upload.module';
 import { PlayersModule } from './infrastructure/modules/players/players.module';
 import { MatchesModule } from './infrastructure/modules/matches/matches.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -13,7 +15,11 @@ import { MatchesModule } from './infrastructure/modules/matches/matches.module';
     TypeOrmModule.forRootAsync(typeormConfig),
     UploadModule,
     PlayersModule,
-    MatchesModule
+    MatchesModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'ui'),
+      serveRoot: '/painel',
+    }),
   ],
 })
 export class AppModule { }
