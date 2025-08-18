@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FPS Log UI</title>
+  <meta name="description" content="Painel simples para visualizar ranking de partidas, times e ranking global usando a API" />
+  <link rel="stylesheet" href="./styles.css" />
+
+</head>
+<body>
+  <header class="site-header" role="banner">
+    <div class="wrap">
+      <div class="brand">
+        <div class="brand-dot" aria-hidden="true"></div>
+        <strong>FPS Log UI</strong>
+      </div>
+      <div class="row top-controls">
+        <label class="field field--grow">Base URL da API
+          <input id="baseUrl" type="text" placeholder="http://localhost:3000" aria-label="Base URL da API" />
+        </label>
+        <button class="btn btn--secondary" id="openDocs" type="button">Docs</button>
+        <span class="status" id="status" aria-live="polite">Pronto</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="grid" role="main" aria-label="Painel de partidas">
+
+    <section class="match-panel col-6" aria-labelledby="upload-title">
+      <h2 id="upload-title">1) Upload <span class="badge">POST /upload</span></h2>
+      <div class="row">
+        <label class="field field--grow">Conteúdo do log
+          <textarea id="logText" placeholder="Cole aqui o texto do log" aria-label="Conteúdo do log"></textarea>
+        </label>
+      </div>
+      <div class="row">
+        <button class="btn" id="doUploadText" type="button">Enviar texto</button>
+        <span class="hint">Envia JSON <code>{ content }</code></span>
+      </div>
+      <div class="hr" role="separator"></div>
+      <div class="row">
+        <label class="field">Arquivo
+          <input id="logFile" type="file" accept=".txt,.log,text/plain" aria-label="Arquivo de log" />
+        </label>
+        <button class="btn" id="doUploadFile" type="button">Enviar arquivo</button>
+        <span class="hint">Multipart com campo <span class="kbd">file</span></span>
+      </div>
+      <div class="row"><div class="hint" id="uploadMsg"></div></div>
+    </section>
+
+    <section class="match-panel col-6" aria-labelledby="match-title">
+      <h2 id="match-title">2) Ranking da partida <span class="badge">GET /matches/:id/ranking</span></h2>
+      <div class="row">
+        <label class="field field--grow">Match ID
+          <input id="matchId" type="text" placeholder="Ex.: 11348965" aria-label="Match ID" />
+        </label>
+        <button class="btn" id="loadRanking" type="button">Buscar</button>
+      </div>
+      <div class="row"><div id="winner" class="match-winner" aria-live="polite"></div></div>
+      <div class="table-wrap" role="region" aria-label="Ranking da partida">
+        <table id="ranking" class="match-table" style="display:none">
+          <caption class="sr-only">Ranking da partida</caption>
+          <thead>
+            <tr>
+              <th scope="col">Jogador</th>
+              <th scope="col">Frags</th>
+              <th scope="col">Mortes</th>
+              <th scope="col">Melhor Streak</th>
+              <th scope="col">Prêmios</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="hr" role="separator"></div>
+      <h3 class="sub">Atribuir times <span class="badge">POST /matches/:id/teams</span></h3>
+      <div class="hint" id="teamsWrap">Busque o ranking para carregar jogadores.</div>
+      <div class="row" id="teamsActions" style="display:none; margin-top:10px;">
+        <button class="btn" id="saveTeams" type="button">Salvar</button>
+        <span class="hint">Depois, busque o ranking de novo.</span>
+      </div>
+      <div class="hint" id="teamsMsg" aria-live="polite"></div>
+    </section>
+
+    <section class="match-panel col-12" aria-labelledby="global-title">
+      <h2 id="global-title">3) Ranking global <span class="badge">GET /players/global-ranking</span></h2>
+      <div class="row">
+        <label class="field">Limite
+          <input id="limit" type="number" value="20" min="1" max="200" aria-label="Limite" />
+        </label>
+        <label class="field">Offset
+          <input id="offset" type="number" value="0" min="0" aria-label="Offset" />
+        </label>
+        <button class="btn" id="loadGlobal" type="button">Carregar</button>
+        <button class="btn btn--secondary" id="prev" type="button">Anterior</button>
+        <button class="btn btn--secondary" id="next" type="button">Próximo</button>
+      </div>
+      <div class="table-wrap" role="region" aria-label="Ranking global">
+        <table id="global" class="match-table" style="display:none">
+          <caption class="sr-only">Ranking global</caption>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Jogador</th>
+              <th scope="col">Frags</th>
+              <th scope="col">Mortes</th>
+              <th scope="col">KD</th>
+              <th scope="col">Vitórias</th>
+              <th scope="col">Melhor Streak</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row"><div class="hint" id="globalMsg" aria-live="polite"></div></div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

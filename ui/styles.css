@@ -1,0 +1,265 @@
+:root {
+    --bg: #0f131a;
+    --panel: #111827;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --border: #1f2937;
+    --accent: #22c55e;
+    --blue: #60a5fa;
+}
+
+* {
+    box-sizing: border-box
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu
+}
+
+a {
+    color: var(--blue);
+    text-decoration: none
+}
+
+a:hover {
+    text-decoration: underline
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    background: #0f141d;
+    border-bottom: 1px solid var(--border);
+    z-index: 50
+}
+
+.wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px
+}
+
+.brand-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, .15)
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 22px 16px 60px
+}
+
+.col-6 {
+    grid-column: span 12
+}
+
+.col-12 {
+    grid-column: span 12
+}
+
+@media(min-width:900px) {
+    .col-6 {
+        grid-column: span 6
+    }
+}
+
+.match-panel {
+    background: #0f141d;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .22)
+}
+
+.match-panel h2 {
+    margin: 0 0 10px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px
+}
+
+.sub {
+    margin: 0 0 6px;
+    font-size: 16px
+}
+
+.badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    color: var(--muted)
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center
+}
+
+.row+.row {
+    margin-top: 10px
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px
+}
+
+.field--grow {
+    flex: 1 1 340px
+}
+
+input,
+textarea {
+    width: 100%;
+    background: #0b1323;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 12px;
+    outline: none
+}
+
+textarea {
+    min-height: 120px;
+    resize: vertical
+}
+
+.btn {
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(34, 197, 94, .15), rgba(34, 197, 94, .05));
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600
+}
+
+.btn:hover {
+    filter: brightness(1.05)
+}
+
+.btn:active {
+    transform: translateY(1px)
+}
+
+.btn--secondary {
+    background: linear-gradient(180deg, rgba(96, 165, 250, .15), rgba(96, 165, 250, .05))
+}
+
+.hint {
+    font-size: 12px;
+    color: var(--muted)
+}
+
+.hr {
+    height: 1px;
+    background: var(--border);
+    margin: 14px 0
+}
+
+.table-wrap {
+    width: 100%;
+    overflow: auto
+}
+
+.match-table {
+    width: 100%;
+    border-collapse: collapse
+}
+
+.match-table th,
+.match-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: left
+}
+
+.match-table th {
+    color: var(--muted);
+    font-weight: 600
+}
+
+.award-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px
+}
+
+.award-badge--good {
+    background: rgba(14, 165, 233, .12);
+    border-color: rgba(14, 165, 233, .25)
+}
+
+.award-badge--warn {
+    background: rgba(245, 158, 11, .12);
+    border-color: rgba(245, 158, 11, .25)
+}
+
+.match-winner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px
+}
+
+.match-winner strong {
+    background: rgba(34, 197, 94, .12);
+    border: 1px solid rgba(34, 197, 94, .25);
+    padding: 4px 10px;
+    border-radius: 999px
+}
+
+.status {
+    font-size: 13px;
+    color: var(--muted)
+}
+
+.kbd {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #0b1323;
+    color: #cbd5e1
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0
+}
+
+.top-controls {
+    margin-top: 10px
+}
