@@ -17,17 +17,17 @@ import {
 @ApiExtraModels(UploadLogDto)
 @Controller('upload')
 export class UploadController {
-  constructor(private readonly parseLog: ParseLogUseCase) {}
+  constructor(private readonly parseLog: ParseLogUseCase) { }
 
   @Post()
-  @ApiOperation({ summary: 'Envia o conteúdo do log como JSON ou texto puro' })
+  @ApiOperation({ summary: 'Envia o conteúdo do log como JSON' })
   @ApiConsumes('application/json', 'text/plain')
   @ApiBody({
-    description: 'Envie JSON { content } OU text/plain com o log bruto',
+    description: 'Envie JSON { content }',
     schema: {
       oneOf: [
         { $ref: getSchemaPath(UploadLogDto) },
-        { type: 'string', description: 'Conteúdo do log em text/plain' },
+        { type: 'string', description: 'Conteúdo do log' },
       ],
     },
   })
@@ -137,7 +137,7 @@ export class UploadController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
-   async uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
 
     const log = file.buffer?.toString('utf8')?.trim() ?? '';
