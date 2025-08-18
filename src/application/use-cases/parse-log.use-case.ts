@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { LogParserService } from '../services/log-parser.service';
 import { StatsCalculatorService } from '../services/stats-calculator.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -21,7 +21,7 @@ export class ParseLogUseCase {
     @InjectRepository(PlayerOrmEntity) private readonly playerRepo: Repository<PlayerOrmEntity>,
     @InjectRepository(KillOrmEntity) private readonly killRepo: Repository<KillOrmEntity>,
     @InjectRepository(AwardOrmEntity) private readonly awardRepo: Repository<AwardOrmEntity>,
-  ) {}
+  ) { }
 
   async execute({ log }: Input) {
     if (!log || log.trim().length === 0) {
@@ -49,6 +49,17 @@ export class ParseLogUseCase {
   }
 
   private async persistMatchWithEvents(match: Match, events: KillEvent[]) {
+    const playerNames = new Set<string>();
+    for (const ev of events) {
+      if (ev.killer && ev.killer !== '<WORLD>') playerNames.add(ev.killer);
+      if (ev.victim && ev.victim !== '<WORLD>') playerNames.add(ev.victim);
+      if (playerNames.size > 20) {
+        throw new BadRequestException(
+          `Partida ${match.id} possui ${playerNames.size} jogadores. Limite máximo é 20.`,
+        );
+      }
+    }
+
     let m = await this.matchRepo.findOne({ where: { id: match.id } });
     if (!m) {
       m = this.matchRepo.create({
