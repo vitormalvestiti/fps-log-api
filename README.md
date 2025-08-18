@@ -1,98 +1,148 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# FPS Log API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API em NestJS para receber logs de partidas de FPS, parsear eventos, armazenar em PostgreSQL e expor rankings e estatísticas. Inclui um painel estático simples e documentação Swagger.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tecnologias e arquitetura
+- **NestJS 11** com **TypeScript**
+- **TypeORM** com **PostgreSQL**
+- **class-validator** e **class-transformer** para validação e transformação
+- **Multer** para upload de arquivos
+- **Swagger** em `/docs`
+- Padrões **DDD** por camadas
+  - `domain` entidades e value objects
+  - `application` casos de uso, serviços e DTOs
+  - `infrastructure` repositórios, módulos Nest, ORM
+  - `core` regras puras de parsing e cálculo
 
-## Description
+## Pré‑requisitos
+- **Node.js 18 ou 20** e **npm**
+- **PostgreSQL 13+**
+- Acesso a um banco local com usuário que possa criar tabelas
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Variáveis de ambiente
+Arquivo `.env` de exemplo já incluso:
+```
+NODE_ENV=development
+PORT=3000
 
-## Project setup
-
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_USER=postgres
+DB_PASS=010203
+DB_NAME=fps_log_db
+DB_SYNC=false
+DB_LOGGING=true
+```
+## Instalação e execução
 ```bash
-$ npm install
+# 1) instalar dependências
+npm install
+
+# 2) criar o banco vazio no PostgreSQL
+# psql -U postgres -c "CREATE DATABASE fps_log_db;"
+
+# 3) aplicar migrações
+npm run migration:run
+# equivale a: npx ts-node -r dotenv/config ./scripts/migrate.ts run
+
+# 4) rodar em desenvolvimento
+npm run start:dev
+
+```
+Endpoints úteis
+- Swagger: `http://localhost:3000/docs`
+- Painel para consumo da API: `http://localhost:3000/painel`
+
+## Banco de dados e migrações
+Scripts disponíveis
+```jsonc
+"scripts": {
+  "migration:run": "ts-node -r dotenv/config ./scripts/migrate.ts run",
+  "migration:revert": "ts-node -r dotenv/config ./scripts/migrate.ts revert"
+}
+```
+- As entidades ficam em `src/infrastructure/database/orm`.
+- Migrações ficam em `src/infrastructure/database/migrations`.
+
+## Formato de respostas
+Padrão do interceptor:
+```json
+{ "success": true, "data": { /* payload */ } }
+```
+Erros tratados por filtro global:
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "path": "/rota",
+  "error": "mensagem de erro",
+  "timestamp": "2025-08-17T12:00:00.000Z"
+}
 ```
 
-## Compile and run the project
+## Rotas da API
 
-```bash
-# development
-$ npm run start
+### 1) `POST /upload`
+Envia um log para processamento. Duas formas
 
-# watch mode
-$ npm run start:dev
+A) **JSON** com o conteúdo do log
 
-# production mode
-$ npm run start:prod
+B) **Arquivo** .TXT ou .LOG
+
+### 2) `GET /matches/{id}/ranking`
+Gera ranking da partida informada.
+
+### 3) `POST /matches/{id}/teams`
+Atribui times a jogadores de uma partida.
+
+### 4) `GET /players/global-ranking`
+Ranking global consolidado por jogador, com paginação.
+
+## Lógica de domínio e regras
+### Formato do log aceito
+Linhas no padrão
+- `DD/MM/YYYY HH:mm:ss - New match {id} has started`
+- `{data} - {killer} killed {victim} using {WEAPON}`
+- `{data} - <WORLD> killed {victim} by {REASON}`
+- `DD/MM/YYYY HH:mm:ss - Match {id} has ended`
+
+
+### Estatísticas por partida
+- `frags` e `deaths` por jogador
+- `maxStreak` sequência máxima de abates
+- `winner` jogador com mais frags. Empates desempate por menos deaths depois por maior `maxStreak`
+- **Prêmios**
+  - `invincible` quando o vencedor termina com zero mortes
+  - `fiveInOneMinute` quando um jogador realiza 5 abates em uma janela de 60 segundos
+- Abates do `<WORLD>` contam apenas como morte
+- Team kill depende das atribuições de time da partida
+
+### Ranking global
+Agrega estatísticas em todas as partidas
+- `totalFrags`, `totalDeaths` e `kd` calculado
+- `wins` quantidade de partidas vencidas
+- `bestStreak` melhor sequência em qualquer partida
+- Ordenação por `totalFrags` desc, depois `kd` desc, depois `wins` desc, depois `bestStreak` desc
+
+ Scripts NPM e testes
+Principais scripts
+```jsonc
+"start": "nest start",
+"start:dev": "nest start --watch",
+"build": "nest build",
+"test": "jest",
+"test:watch": "jest --watch",
+"test:e2e": "jest --config ./test/jest-e2e.json",
+"migration:run": "ts-node -r dotenv/config ./scripts/migrate.ts run",
+"migration:revert": "ts-node -r dotenv/config ./scripts/migrate.ts revert"
 ```
+## Rodar testes
 
-## Run tests
+npm run test
 
-```bash
-# unit tests
-$ npm run test
+## Rodar API
+npm run start:dev
 
-# e2e tests
-$ npm run test:e2e
+## Documentação
+- Swagger em `http://localhost:3000/docs` com schemas e exemplos
 
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
